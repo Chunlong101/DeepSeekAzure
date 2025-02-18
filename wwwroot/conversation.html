@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Conversation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        .input-area button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #444;
+        }
+
+        .chat-box {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+
+        .message {
+            margin: 10px 0;
+        }
+
+        .message.user {
+            text-align: right;
+            color: #007bff;
+        }
+
+        .message.ai {
+            text-align: left;
+            color: #28a745;
+        }
+
+        .input-area {
+            display: flex;
+            margin-top: 20px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .input-area button {
+            padding: 10px 20px;
+            margin-left: 10px;
+            border: none;
+            background: #007bff;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .input-area button:hover {
+            background: #0056b3;
+        }
+
+        .label {
+            font-weight: bold;
+            margin: 0 5px;
+        }
+
+        .icon {
+            margin-right: 10px;
+        }
+
+        .text {
+            flex: 1;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>AI Conversation</h1>
+        <div class="chat-box" id="chatBox"></div>
+        <div id="spinner" style="display: none; margin: 20px auto; text-align: center;">
+            <div style="width: 40px; height: 40px; border: 4px solid #ddd; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+            <div id="timer" style="margin-top: 10px; font-size: 16px; color: #333; text-align: center;">0 seconds</div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type your message here..." onkeydown="handleKeyPress(event)">
+            <button onclick="sendMessage()">Send</button>
+            <button onclick="clearHistory()">Clear History</button>
+        </div>
+    </div>
+    <script>
+        const chatBox = document.getElementById('chatBox');
+        let conversationHistory = [];
+
+        function appendMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + sender;
+            const label = document.createElement('span');
+            label.className = 'label';
+            label.textContent = sender === 'user' ? 'User' : 'AI';
+
+            const icon = document.createElement('span');
+            icon.className = 'icon';
+            icon.textContent = sender === 'user' ? '👤' : '🤖';
+
+            const text = document.createElement('span');
+            text.className = 'text';
+            text.textContent = content;
+
+            messageDiv.appendChild(icon);
+            messageDiv.appendChild(label);
+            messageDiv.appendChild(text);
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function clearHistory() {
+            conversationHistory = [];
+            chatBox.innerHTML = '';
+        }
+
+        let timerInterval;
+        let elapsedTime = 0;
+
+        function showSpinner() {
+            const spinner = document.getElementById('spinner');
+            const timer = document.getElementById('timer');
+            spinner.style.display = 'block';
+            const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+            sendButton.disabled = true;
+
+            elapsedTime = 0;
+            timer.textContent = `${elapsedTime} seconds`;
+            timerInterval = setInterval(() => {
+                elapsedTime += 1;
+                timer.textContent = `${elapsedTime} seconds`;
+            }, 1000);
+        }
+
+        function hideSpinner() {
+            const spinner = document.getElementById('spinner');
+            const timer = document.getElementById('timer');
+            spinner.style.display = 'none';
+            const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+            sendButton.disabled = false;
+
+            clearInterval(timerInterval);
+            timer.textContent = `0 seconds`;
+        }
+
+        async function sendMessage() {
+            showSpinner();
+            const userInput = document.getElementById('userInput');
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            conversationHistory.push({ role: 'user', content: message });
+            appendMessage(message, 'user');
+            userInput.value = '';
+
+            try {
+                const response = await fetch('/v1/OpenAI/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ messages: conversationHistory })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    hideSpinner();
+                    const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+                    conversationHistory.push({ role: 'assistant', content: content });
+                    appendMessage(content || 'No content found in response.', 'ai');
+                } else {
+                    appendMessage('Error: Unable to get a response from the server.', 'ai');
+                    hideSpinner();
+                }
+            } catch (error) {
+                appendMessage('Error: ' + error.message, 'ai');
+                hideSpinner();
+            }
+        }
+    </script>
+</body>
+
+</html>
