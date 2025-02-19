@@ -10,18 +10,7 @@ namespace DeepSeekAzure.Controllers
     public class OpenAIController : ControllerBase
     {
         /// <summary>
-        /// Call Azure AI Foundry API to get completions, request body format goes like this:
-        /// {
-        ///     "prompt": "中国的首都是？",
-        ///     "model": "DeepSeek-R1",
-        ///     "maxTokens": 4096,
-        ///     "temperature": 0.6,
-        ///     "topP": 0.95,
-        ///     "n": 1,
-        ///     "stream": true,
-        ///     "logprobs": "None",
-        ///     "stop": "None"
-        /// }
+        /// Call Azure AI Foundry API to get completions.
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
@@ -52,7 +41,7 @@ namespace DeepSeekAzure.Controllers
             var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
 
             Console.WriteLine("Payload sent to API: " + jsonPayload);
-            var apiResponse = await httpClient.PostAsync("https://OneLLM.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview", content);
+            var apiResponse = await httpClient.PostAsync("https://xxx.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview", content);
 
             if (!apiResponse.IsSuccessStatusCode)
             {
