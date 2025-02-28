@@ -8,6 +8,15 @@ namespace DeepSeekAzure.Controllers
     [Route("openai/deployments/deepseek/[controller]")]
     public class ChatController : ControllerBase
     {
+        private readonly string _apiKey;
+        private readonly string _endpoint;
+
+        public ChatController(IConfiguration configuration)
+        {
+            _apiKey = configuration["ApiKey"];
+            _endpoint = configuration["Endpoint"];
+        }
+
         /// <summary>
         /// Call Azure AI Foundry API to get completions.
         /// </summary>
@@ -16,21 +25,24 @@ namespace DeepSeekAzure.Controllers
         [HttpPost("completions")]
         public async Task<IActionResult> Completions([FromBody] AICompletionRequest request)
         {
+            // Validate API key from request header
+            if (!Request.Headers.TryGetValue("api-key", out var providedApiKey) || providedApiKey != _apiKey)
+            {
+                return Unauthorized(new { error = "Invalid or missing API key." });
+            }
+
             // Validate request
             if (request.Messages == null || request.Messages.Count == 0)
             {
                 return BadRequest(new { error = "Prompt is required." });
             }
 
-            var endpoint = "https://xxx.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview";
-            var apikey = "xxx";
-
             using var httpClient = new HttpClient
             {
                 Timeout = TimeSpan.FromMinutes(5)
             };
 
-            httpClient.DefaultRequestHeaders.Add("api-key", apikey);
+            httpClient.DefaultRequestHeaders.Add("api-key", _apiKey);
 
             var payload = new
             {
@@ -45,7 +57,7 @@ namespace DeepSeekAzure.Controllers
             var jsonPayload = JsonSerializer.Serialize(payload);
             var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
 
-            var apiResponse = await httpClient.PostAsync(endpoint, content);
+            var apiResponse = await httpClient.PostAsync(_endpoint, content);
 
             if (!apiResponse.IsSuccessStatusCode)
             {

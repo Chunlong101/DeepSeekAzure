@@ -4,354 +4,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Conversation</title>
-    <style>
-        body {
-            font-family: 'Book Antiqua', serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f9fafb;
-            color: #333;
-            line-height: 1.6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-
-        .container {
-            max-width: 100%;
-            padding: 20px;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            text-align: center;
-            color: #222;
-            font-size: 1.8rem;
-            margin-bottom: 20px;
-        }
-
-        .chat-box {
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            padding: 15px;
-            height: 50vh;
-            overflow-y: auto;
-            background: #fefefe;
-        }
-
-        .message {
-            margin: 10px 0;
-            word-wrap: break-word;
-        }
-
-        .message {
-            display: flex;
-            align-items: center;
-            margin: 10px 0;
-            word-wrap: break-word;
-        }
-
-        .message.user {
-            justify-content: flex-end;
-        }
-
-        .message.ai {
-            justify-content: flex-start;
-        }
-
-        .message .icon {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 50%;
-            background-color: #007bff;
-            color: #fff;
-            font-size: 1.2rem;
-            margin: 0 10px;
-        }
-
-        .message.user .icon {
-            background-color: #007bff;
-        }
-
-        .message.ai .icon {
-            background-color: #28a745;
-        }
-
-        .message .text {
-            max-width: 70%;
-            padding: 10px 15px;
-            border-radius: 12px;
-            background-color: #f1f1f1;
-            color: #333;
-            font-size: 1rem;
-            line-height: 1.4;
-        }
-
-        .message.user .text {
-            background-color: #e6f0ff;
-        }
-
-        .message.ai .text {
-            background-color: #e9f7ea;
-        }
-        }
-
-        .input-area {
-            display: flex;
-            flex-wrap: wrap;
-            margin-top: 20px;
-            gap: 10px;
-        }
-
-        .input-area input,
-        .input-area button,
-        label {
-            font-family: 'Book Antiqua', serif;
-        }
-
-        .input-area input {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-
-        .input-area button {
-            padding: 12px 20px;
-            border: none;
-            background: #007bff;
-            color: #fff;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-
-        .input-area button:hover {
-            background: #0056b3;
-        }
-
-        .input-area button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            .chat-box {
-                height: 40vh;
-            }
-
-            .input-area input {
-                font-size: 0.9rem;
-            }
-
-            .input-area button {
-                font-size: 0.9rem;
-            }
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    <title>Your DeepSeek on Azure</title>
+    <link rel="stylesheet" href="styles/conversation.css">
 </head>
 
 <body>
     <div class="container">
-        <h1>AI Conversation</h1>
+        <h1>Your DeepSeek on Azure</h1>
         <div class="chat-box" id="chatBox"></div>
-        <div id="spinner" style="display: none; margin: 20px auto; text-align: center;">
-            <div style="width: 40px; height: 40px; border: 4px solid #ddd; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
-            <div id="timer" style="margin-top: 10px; font-size: 16px; color: #333; text-align: center;">0 seconds</div>
-        </div>
         <div class="input-area">
-            <input type="text" id="userInput" placeholder="Type your message here..." onkeydown="handleKeyPress(event)">
+            <input type="text" id="userInput" placeholder="Ask me anything..." onkeydown="handleKeyPress(event)">
             <button onclick="sendMessage()">Send</button>
-            <button onclick="clearHistory()">Clear History</button>
-            <button id="settingsIcon" onclick="toggleSettingsMenu()" style="margin-left: 10px;">⚙️</button>
-            <div id="settingsMenu" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; border: 1px solid #ddd; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); width: 300px; z-index: 1000;">
-                <h3 style="text-align: center; margin-bottom: 15px; color: #444;">Settings</h3>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="model" style="flex: 1; text-align: right; margin-right: 10px;">Model:</label>
-                        <input type="text" id="model" value="DeepSeek-R1" style="flex: 2; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="maxTokens" style="flex: 1; text-align: right; margin-right: 10px;">Max Tokens:</label>
-                        <input type="number" id="maxTokens" value="4096" style="flex: 2; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="temperature" style="flex: 1; text-align: right; margin-right: 10px;">Temperature:</label>
-                        <input type="number" step="0.1" id="temperature" value="0.8" style="flex: 2; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="topP" style="flex: 1; text-align: right; margin-right: 10px;">Top P:</label>
-                        <input type="number" step="0.01" id="topP" value="0.95" style="flex: 2; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="n" style="flex: 1; text-align: right; margin-right: 10px;">N:</label>
-                        <input type="number" id="n" value="1" style="flex: 2; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="stream" style="flex: 1; text-align: right; margin-right: 10px;">Stream:</label>
-                        <input type="checkbox" id="stream" checked style="flex: 2;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="logprobs" style="flex: 1; text-align: right; margin-right: 10px;">Logprobs:</label>
-                        <input type="text" id="logprobs" value="None" style="flex: 2; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="stop" style="flex: 1; text-align: right; margin-right: 10px;">Stop:</label>
-                        <input type="text" id="stop" value="None" style="flex: 2; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="endpoint" style="flex: 1; text-align: right; margin-right: 10px;">Endpoint:</label>
-                        <input type="text" id="endpoint" value="https://xxx.services.ai.azure.com/models" style="flex: 2; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="frequency_penalty" style="flex: 1; text-align: right; margin-right: 10px;">Frequency Penalty:</label>
-                        <input type="number" id="frequency_penalty" value="0" style="flex: 2; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <label for="presence_penalty" style="flex: 1; text-align: right; margin-right: 10px;">Presence Penalty:</label>
-                        <input type="number" id="presence_penalty" value="0" style="flex: 2; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                </div>
-            </div>
+            <button onclick="clearHistory()">Clear</button>
+            <button id="settingsIcon" onclick="toggleSettingsMenu()">⚙️</button>
         </div>
-    <script>
-        const chatBox = document.getElementById('chatBox');
-        let conversationHistory = [];
+        <div id="progressBarContainer" style="display: none;">
+            <div id="progressBar"></div>
+        </div>
+        <div id="timer" style="display: none;">0 seconds</div>
+    </div>
 
-        function appendMessage(content, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ' + sender;
+<div id="settingsMenu" style="display: none;">
+        <h3>Settings</h3>
+        <div class="settings-row">
+            <label for="model">Model:</label>
+            <input type="text" id="model" value="DeepSeek-R1">
+        </div>
+        <div class="settings-row">
+            <label for="apiKey">API Key:</label>
+<input type="password" id="apiKey" placeholder="Enter API Key">
+        </div>
+        <div class="settings-row">
+            <label for="maxTokens">Max Tokens:</label>
+            <input type="number" id="maxTokens" value="4096">
+        </div>
+        <div class="settings-row">
+            <label for="temperature">Temperature:</label>
+            <input type="number" id="temperature" value="0.8" step="0.1">
+        </div>
+        <div class="settings-row">
+            <label for="topP">Top P:</label>
+            <input type="number" id="topP" value="0.95" step="0.05">
+        </div>
+        <div class="settings-row">
+            <label for="n">N:</label>
+            <input type="number" id="n" value="1">
+        </div>
+        <div class="settings-row">
+            <label for="stream">Stream:</label>
+            <input type="checkbox" id="stream" checked>
+        </div>
+        <div class="settings-row">
+            <label for="logprobs">Logprobs:</label>
+            <input type="text" id="logprobs" placeholder="None">
+        </div>
+        <div class="settings-row">
+            <label for="stop">Stop:</label>
+            <input type="text" id="stop" placeholder="None">
+        </div>
+        <div class="settings-row">
+            <label for="frequency_penalty">Frequency Penalty:</label>
+            <input type="number" id="frequency_penalty" value="0" step="0.1">
+        </div>
+        <div class="settings-row">
+            <label for="presence_penalty">Presence Penalty:</label>
+            <input type="number" id="presence_penalty" value="0" step="0.1">
+        </div>
+        <button onclick="dismissSettingsMenu()">OK</button>
+    </div>
+    <div id="overlay" onclick="dismissSettingsMenu()" style="display: none;"></div>
 
-            const icon = document.createElement('span');
-            icon.className = 'icon';
-            icon.textContent = sender === 'user' ? '👤' : '🤖';
-
-            const text = document.createElement('span');
-            text.className = 'text';
-            text.textContent = content;
-
-            messageDiv.appendChild(icon);
-            messageDiv.appendChild(text);
-            chatBox.appendChild(messageDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-function handleKeyPress(event) {
-            const userInput = document.getElementById('userInput');
-            if (event.key === 'Enter' && !userInput.disabled) {
-                sendMessage();
-            }
-        }
-
-        function clearHistory() {
-            conversationHistory = [];
-            chatBox.innerHTML = '';
-        }
-
-        let timerInterval;
-        let elapsedTime = 0;
-
-        function showSpinner() {
-            const spinner = document.getElementById('spinner');
-            const timer = document.getElementById('timer');
-            spinner.style.display = 'block';
-            const sendButton = document.querySelector('button[onclick="sendMessage()"]');
-            sendButton.disabled = true;
-
-            elapsedTime = 0;
-            timer.textContent = `${elapsedTime} seconds`;
-            timerInterval = setInterval(() => {
-                elapsedTime += 1;
-                timer.textContent = `${elapsedTime} seconds`;
-            }, 1000);
-        }
-
-        function hideSpinner() {
-            const spinner = document.getElementById('spinner');
-            const timer = document.getElementById('timer');
-            spinner.style.display = 'none';
-            const sendButton = document.querySelector('button[onclick="sendMessage()"]');
-            sendButton.disabled = false;
-
-            clearInterval(timerInterval);
-            timer.textContent = `0 seconds`;
-        }
-
-async function sendMessage() {
-    const userInput = document.getElementById('userInput');
-    const message = userInput.value.trim();
-    if (!message || userInput.disabled) return;
-
-    showSpinner();
-    userInput.disabled = true; // Ensure input is disabled immediately
-    conversationHistory.push({ role: 'user', content: message });
-    appendMessage(message, 'user');
-    userInput.value = '';
-
-    try {
-        const response = await fetch('/v1/OpenAI/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ messages: conversationHistory })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-            conversationHistory.push({ role: 'assistant', content: content });
-            appendMessage(content || 'No content found in response.', 'ai');
-        } else {
-            appendMessage('Error: Unable to get a response from the server.', 'ai');
-        }
-    } catch (error) {
-        appendMessage('Error: ' + error.message, 'ai');
-    } finally {
-        hideSpinner();
-        userInput.disabled = false; // Re-enable input after response
-    }
-}
-        function toggleSettingsMenu() {
-            const menu = document.getElementById('settingsMenu');
-            const overlay = document.getElementById('overlay');
-            if (menu.style.display === 'none') {
-                menu.style.display = 'block';
-                overlay.style.display = 'block';
-            } else {
-                menu.style.display = 'none';
-                overlay.style.display = 'none';
-            }
-        }
-
-        function dismissSettingsMenu() {
-            const menu = document.getElementById('settingsMenu');
-            const overlay = document.getElementById('overlay');
-            menu.style.display = 'none';
-            overlay.style.display = 'none';
-        }
-    </script>
-    <div id="overlay" onclick="dismissSettingsMenu()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 999;"></div>
+    <script src="scripts/conversation.js"></script>
 </body>
 
 </html>
