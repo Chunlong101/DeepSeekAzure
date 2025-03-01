@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 namespace DeepSeekAzure.Controllers
 {
     [ApiController]
-    [Route("openai/deployments/deepseek/[controller]")]
+    [Route("openai/deployments/deepseek-r1/[controller]")]
     public class ChatController : ControllerBase
     {
         private readonly string _apiKey;
@@ -58,15 +58,79 @@ namespace DeepSeekAzure.Controllers
             var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
 
             var apiResponse = await httpClient.PostAsync(_endpoint, content);
+            var apiResponseContent = await apiResponse.Content.ReadAsStringAsync();
 
             if (!apiResponse.IsSuccessStatusCode)
             {
-                var responseContentTest = await apiResponse.Content.ReadAsStringAsync();
-                return Content(responseContentTest, "application/json");
+                return StatusCode((int)apiResponse.StatusCode, new { error = "API request failed." });
             }
 
-            var responseContent = await apiResponse.Content.ReadAsStringAsync();
-            return Content(responseContent, "application/json");
+            var apiResponseJson = JsonDocument.Parse(apiResponseContent).RootElement;
+
+            var response = new
+            {
+                choices = apiResponseJson.GetProperty("choices").EnumerateArray().Select(choice => new
+                {
+                    content_filter_results = new
+                    {
+                        hate = new { filtered = false, severity = "safe" },
+                        protected_material_code = new { filtered = false, detected = false },
+                        protected_material_text = new { filtered = false, detected = false },
+                        self_harm = new { filtered = false, severity = "safe" },
+                        sexual = new { filtered = false, severity = "safe" },
+                        violence = new { filtered = false, severity = "safe" }
+                    },
+                    finish_reason = choice.GetProperty("finish_reason").GetString(),
+                    index = choice.GetProperty("index").GetInt32(),
+                    logprobs = (object)null,
+                    message = new
+                    {
+                        content = choice.GetProperty("message").GetProperty("content").GetString(),
+                        refusal = (object)null,
+                        role = choice.GetProperty("message").GetProperty("role").GetString()
+                    }
+                }).ToArray(),
+                created = apiResponseJson.GetProperty("created").GetInt32(),
+                id = apiResponseJson.GetProperty("id").GetString(),
+                model = apiResponseJson.GetProperty("model").GetString(),
+                @object = apiResponseJson.GetProperty("object").GetString(),
+                prompt_filter_results = new[]
+                {
+                    new
+                    {
+                        prompt_index = 0,
+                        content_filter_results = new
+                        {
+                            hate = new { filtered = false, severity = "safe" },
+                            jailbreak = new { filtered = false, detected = false },
+                            self_harm = new { filtered = false, severity = "safe" },
+                            sexual = new { filtered = false, severity = "safe" },
+                            violence = new { filtered = false, severity = "safe" }
+                        }
+                    }
+                },
+                system_fingerprint = "fp_b705f0c291",
+                usage = new
+                {
+                    completion_tokens = apiResponseJson.GetProperty("usage").GetProperty("completion_tokens").GetInt32(),
+                    completion_tokens_details = new
+                    {
+                        accepted_prediction_tokens = 0,
+                        audio_tokens = 0,
+                        reasoning_tokens = 0,
+                        rejected_prediction_tokens = 0
+                    },
+                    prompt_tokens = apiResponseJson.GetProperty("usage").GetProperty("prompt_tokens").GetInt32(),
+                    prompt_tokens_details = new
+                    {
+                        audio_tokens = 0,
+                        cached_tokens = 0
+                    },
+                    total_tokens = apiResponseJson.GetProperty("usage").GetProperty("total_tokens").GetInt32()
+                }
+            };
+
+            return Ok(response);
         }
     }
 

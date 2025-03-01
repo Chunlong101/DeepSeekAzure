@@ -73,7 +73,7 @@ async function sendMessage() {
     userInput.value = '';
 
     try {
-        const response = await fetch('/openai/deployments/deepseek/Chat/completions', {
+        const response = await fetch('/openai/deployments/deepseek-r1/Chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
