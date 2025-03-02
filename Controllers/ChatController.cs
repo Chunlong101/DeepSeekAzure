@@ -44,6 +44,7 @@ namespace DeepSeekAzure.Controllers
 
             httpClient.DefaultRequestHeaders.Add("api-key", _apiKey);
 
+            // 虽然客户端可以传很多参数过来，例如：Model、API Key、Max Tokens、Temperature、Top P、N、Stream、Logprobs、Stop、Frequency Penalty、Presence Penalty，但Azure AI Foundry部署的满血DeepSeek只需要以下几个参数
             var payload = new
             {
                 messages = request.Messages,
