@@ -11,7 +11,9 @@ function appendMessage(content, sender) {
 
     const text = document.createElement('span');
     text.className = 'text';
-    text.textContent = content;
+    text.innerHTML = marked.parse(content);
+    messageDiv.setAttribute('role', 'article');
+    messageDiv.setAttribute('aria-live', 'polite');
 
     messageDiv.appendChild(icon);
     messageDiv.appendChild(text);

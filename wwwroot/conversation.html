@@ -12,10 +12,18 @@
     <div class="container">
         <h1>Your DeepSeek on Azure</h1>
         <div class="chat-box" id="chatBox"></div>
-        <div class="input-area">
-            <input type="text" id="userInput" placeholder="Ask me anything..." onkeydown="handleKeyPress(event)">
-            <button onclick="sendMessage()">Send</button>
-            <button onclick="clearHistory()">Clear</button>
+
+        <div class="input-area full-width" style="margin: 0; padding: 0; box-sizing: border-box;">
+            <textarea id="userInput" placeholder="输入消息..." onkeydown="handleKeyPress(event)" class="full-width"
+                style="width: 100%; height: 100%; box-sizing: border-box; resize: none; margin: 0; padding: 10px;"></textarea>
+        </div>
+
+        <div class="button-group full-width">
+            <button onclick="sendMessage()" class="send-btn">
+                <span class="send-text">发送</span>
+                <span class="loading-dots"></span>
+            </button>
+            <button onclick="clearHistory()">清除</button>
             <button id="settingsIcon" onclick="toggleSettingsMenu()">⚙️</button>
         </div>
         <div id="progressBarContainer" style="display: none;">
@@ -24,7 +32,7 @@
         <div id="timer" style="display: none;">0 seconds</div>
     </div>
 
-<div id="settingsMenu" style="display: none;">
+    <div id="settingsMenu" style="display: none;">
         <h3>Settings</h3>
         <div class="settings-row">
             <label for="model">Model:</label>
@@ -32,7 +40,7 @@
         </div>
         <div class="settings-row">
             <label for="apiKey">API Key:</label>
-<input type="password" id="apiKey" placeholder="Enter API Key">
+            <input type="password" id="apiKey" placeholder="Enter API Key">
         </div>
         <div class="settings-row">
             <label for="maxTokens">Max Tokens:</label>
@@ -74,6 +82,7 @@
     </div>
     <div id="overlay" onclick="dismissSettingsMenu()" style="display: none;"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="scripts/conversation.js"></script>
 </body>
 

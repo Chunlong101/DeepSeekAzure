@@ -5,6 +5,9 @@
     --text-color: #1e293b;
     --border-color: #e2e8f0;
     --shadow-color: rgba(0, 0, 0, 0.1);
+    --dark-bg: #1a1a1a;
+    --dark-text: #e0e0e0;
+    --dark-border: #404040;
 }
 
 #progressBarContainer {
@@ -54,6 +57,7 @@ input, button, textarea, select {
     display: flex;
     flex-direction: column;
     height: calc(100vh - 40px);
+    position: relative;
 }
 
 h1 {
@@ -64,7 +68,6 @@ h1 {
     font-size: 1.5rem;
     font-weight: 600;
 }
-
 .chat-box {
     flex: 1;
     padding: 20px;
@@ -127,6 +130,10 @@ h1 {
     border-top: 1px solid var(--border-color);
     display: flex;
     gap: 8px;
+    width: 100%;
+    margin: 0 auto;
+    position: relative;
+    box-sizing: border-box;
 }
 
 input[type="text"] {
@@ -156,6 +163,19 @@ button {
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 100px;
+    justify-content: center;
+}
+
+.button-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 16px;
 }
 
 button:hover {
@@ -236,13 +256,24 @@ button:disabled {
         border-radius: 0;
     }
 
-    .input-area {
-        flex-wrap: wrap;
-    }
+.input-area {
+    display: block;
+    width: 100%;
+    margin: 20px 0;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    width: 100%;
+}
 
     button {
         flex: 1;
         justify-content: center;
+        padding: 8px 12px;
+        min-width: 80px;
     }
 
     .message .text {
