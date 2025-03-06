@@ -36,11 +36,14 @@
 body {
     font-family: 'Book Antiqua', 'Segoe UI', system-ui, -apple-system, sans-serif;
     margin: 0;
-    padding: 20px;
+    padding: 0;
     background-color: var(--background-color);
     color: var(--text-color);
     line-height: 1.5;
     min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 input, button, textarea, select {
@@ -49,14 +52,16 @@ input, button, textarea, select {
 
 .container {
     max-width: 800px;
-    margin: 0 auto;
+    width: 90%;
+    margin: 20px;
     background: white;
     border-radius: 16px;
     box-shadow: 0 6px 18px var(--shadow-color);
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 40px);
+    height: auto;
+    min-height: 80vh;
     position: relative;
 }
 
@@ -74,6 +79,8 @@ h1 {
     overflow-y: auto;
     background: linear-gradient(to bottom, #ffffff 0%, #f8fafc 100%);
     scroll-behavior: smooth;
+    max-height: 70vh;
+    scroll-padding: 20px;
 }
 
 .message {
@@ -250,9 +257,22 @@ button:disabled {
     to { opacity: 1; transform: translateY(0); }
 }
 
+.chat-box::-webkit-scrollbar {
+    width: 10px;
+    background-color: var(--background-color);
+}
+
+.chat-box::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 8px;
+    border: 2px solid var(--background-color);
+}
+
 @media (max-width: 640px) {
     .container {
-        height: 100vh;
+        margin: 10px;
+        width: 95%;
+        min-height: 90vh;
         border-radius: 0;
     }
 
