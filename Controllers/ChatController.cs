@@ -45,7 +45,7 @@ namespace DeepSeekAzure.Controllers
             }
             if (!(b1 || b2))
             {
-                // 其中有一个验证通过，就算验证成功
+                // 其中有一个验证通过，就算验证成功，若都不通过，则返回 Unauthorized
                 return Unauthorized(new { error = "Unauthorized." });
             }
 
@@ -79,40 +79,52 @@ namespace DeepSeekAzure.Controllers
             var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
 
             var apiResponse = await httpClient.PostAsync(_endpoint, content);
-            var apiResponseContent = await apiResponse.Content.ReadAsStringAsync();
 
-            if (!apiResponse.IsSuccessStatusCode)
+            if (request.Stream)
             {
-                return StatusCode((int)apiResponse.StatusCode, new { error = "API request failed." });
+                Response.Headers.Append("Content-Type", "text/event-stream");
+                
+                using var responseStream = await apiResponse.Content.ReadAsStreamAsync();
+                await responseStream.CopyToAsync(Response.Body);
+                return new EmptyResult();
             }
-
-            var apiResponseJson = JsonDocument.Parse(apiResponseContent).RootElement;
-
-            var response = new
+            else
             {
-                id = apiResponseJson.GetProperty("id").GetString(),
-                @object = apiResponseJson.GetProperty("object").GetString(),
-                created = apiResponseJson.GetProperty("created").GetInt32(),
-                model = apiResponseJson.GetProperty("model").GetString(),
-                usage = new
-                {
-                    prompt_tokens = apiResponseJson.GetProperty("usage").GetProperty("prompt_tokens").GetInt32(),
-                    completion_tokens = apiResponseJson.GetProperty("usage").GetProperty("completion_tokens").GetInt32(),
-                    total_tokens = apiResponseJson.GetProperty("usage").GetProperty("total_tokens").GetInt32()
-                },
-                choices = apiResponseJson.GetProperty("choices").EnumerateArray().Select(choice => new
-                {
-                    message = new
-                    {
-                        role = choice.GetProperty("message").GetProperty("role").GetString(),
-                        content = choice.GetProperty("message").GetProperty("content").GetString()
-                    },
-                    finish_reason = choice.GetProperty("finish_reason").GetString(),
-                    index = choice.GetProperty("index").GetInt32()
-                }).ToArray()
-            };
+                var apiResponseContent = await apiResponse.Content.ReadAsStringAsync();
 
-            return Ok(response);
+                if (!apiResponse.IsSuccessStatusCode)
+                {
+                    return StatusCode((int)apiResponse.StatusCode, new { error = "API request failed." });
+                }
+
+                var apiResponseJson = JsonDocument.Parse(apiResponseContent).RootElement;
+
+                var response = new
+                {
+                    id = apiResponseJson.GetProperty("id").GetString(),
+                    @object = apiResponseJson.GetProperty("object").GetString(),
+                    created = apiResponseJson.GetProperty("created").GetInt32(),
+                    model = apiResponseJson.GetProperty("model").GetString(),
+                    usage = new
+                    {
+                        prompt_tokens = apiResponseJson.GetProperty("usage").GetProperty("prompt_tokens").GetInt32(),
+                        completion_tokens = apiResponseJson.GetProperty("usage").GetProperty("completion_tokens").GetInt32(),
+                        total_tokens = apiResponseJson.GetProperty("usage").GetProperty("total_tokens").GetInt32()
+                    },
+                    choices = apiResponseJson.GetProperty("choices").EnumerateArray().Select(choice => new
+                    {
+                        message = new
+                        {
+                            role = choice.GetProperty("message").GetProperty("role").GetString(),
+                            content = choice.GetProperty("message").GetProperty("content").GetString()
+                        },
+                        finish_reason = choice.GetProperty("finish_reason").GetString(),
+                        index = choice.GetProperty("index").GetInt32()
+                    }).ToArray()
+                };
+
+                return Ok(response);
+            }
         }
     }
 
