@@ -3,87 +3,200 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your DeepSeek on Azure</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="DeepSeek AI chat interface running on Azure">
+    <title>DeepSeek on Azure</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/conversation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
-    <div class="container">
-        <h1>Your DeepSeek on Azure</h1>
-        <div class="chat-box" id="chatBox"></div>
+    <div class="chat-container d-flex flex-column vh-100">
+        <!-- Header (sticky-top) -->
+        <header class="chat-header sticky-top">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <div class="d-flex align-items-center">
+                        <h1 class="mb-0 h5">DeepSeek on Azure</h1>
+                        <span class="version-badge ms-2">Beta</span>
+                    </div>
+                    <div class="header-actions">
+                        <!-- Removed dark mode toggle button from here -->
+                    </div>
+                </div>
+            </div>
+        </header>
 
-        <div class="input-area full-width" style="margin: 0; padding: 0; box-sizing: border-box;">
-            <textarea id="userInput" placeholder="输入消息..." onkeydown="handleKeyPress(event)" class="full-width"
-                style="width: 100%; height: 100%; box-sizing: border-box; resize: none; margin: 0; padding: 10px;"></textarea>
+        <!-- Main Chat Area -->
+        <main class="chat-viewport flex-grow-1 position-relative" id="chatBox">
+            <!-- Messages will be inserted here -->
+        </main>
+
+        <!-- AI Thinking Indicator -->
+        <div class="thinking-indicator position-absolute top-50 start-50 translate-middle" id="thinkingIndicator">
+            <div class="thinking-text"><i class="fa-solid fa-robot"></i> AI is thinking...</div>
+            <div class="thinking-progress">
+                <div class="progress-bar"></div>
+            </div>
         </div>
 
-        <div class="button-group full-width">
-            <button onclick="sendMessage()" class="send-btn">
-                <span class="send-text">发送</span>
-                <span class="loading-dots"></span>
-            </button>
-            <button onclick="clearHistory()">清除</button>
-            <button id="settingsIcon" onclick="toggleSettingsMenu()">⚙️</button>
-        </div>
-        <div id="progressBarContainer" style="display: none;">
-            <div id="progressBar"></div>
-        </div>
+        <!-- Footer Input Area -->
+        <footer class="chat-footer">
+            <div class="container-fluid">
+                <div class="input-container">
+                    <div class="input-wrapper position-relative">
+                        <textarea id="userInput" class="form-control" placeholder="Type your message..." 
+                            onkeydown="handleKeyPress(event)" rows="1"></textarea>
+                        <div class="input-tools">
+                            <label for="fileUpload" class="file-upload-label" title="Upload file">
+                                <i class="fa-solid fa-paperclip"></i>
+                                <input type="file" id="fileUpload" style="display:none" onchange="handleFileUpload(event)">
+                            </label>
+                            <div class="char-counter-wrapper" id="charCounterWrapper">
+                                <svg class="char-progress" viewBox="0 0 36 36">
+                                    <path class="char-progress-circle" id="charProgressCircle" stroke="#2563eb"
+                                        stroke-dasharray="100, 100" stroke-dashoffset="0" d="M18 2.0845
+                                           a 15.9155 15.9155 0 0 1 0 31.831
+                                           a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                </svg>
+                                <span id="charCounter" class="char-counter">0</span>
+                            </div>
+                            <div class="menu-container position-relative">
+                                <button id="menuToggle" class="btn btn-icon menu-toggle-btn" title="Show menu">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                                <div id="secondaryMenu" class="secondary-menu">
+                                    <div class="secondary-menu-content">
+                                        <button onclick="clearHistory()" class="secondary-menu-btn"><i
+                                                class="fa-solid fa-trash-can"></i> Clear</button>
+                                        <button onclick="exportChat()" class="secondary-menu-btn"><i
+                                                class="fa-solid fa-download"></i> Export</button>
+                                        <button id="themeToggleMenu" class="secondary-menu-btn" title="Toggle Theme">
+                                            <i class="fa-solid fa-moon"></i> Theme
+                                        </button>
+                                        <button id="settingsIcon" class="secondary-menu-btn" title="Settings">
+                                            <i class="fa-solid fa-gear"></i> Settings
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="sendButton" class="btn btn-primary btn-send" title="Send message" disabled>
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
         <div id="timer" style="display: none;">0 seconds</div>
     </div>
 
-    <div id="settingsMenu" style="display: none;">
-        <h3>Settings</h3>
-        <div class="settings-row">
-            <label for="model">Model:</label>
-            <input type="text" id="model" value="DeepSeek-R1">
+    <!-- Settings Modal -->
+    <div id="settingsMenu" class="settings-menu">
+        <div class="settings-header">
+            <h3><i class="fa-solid fa-sliders"></i> Settings</h3>
+            <button class="close-btn" onclick="dismissSettingsMenu()"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div class="settings-row">
-            <label for="apiKey">API Key:</label>
-            <input type="password" id="apiKey" placeholder="Enter API Key">
+        <div class="settings-content">
+            <div class="settings-section">
+                <h4>Model Configuration</h4>
+                <div class="settings-row">
+                    <label for="model">Model:</label>
+                    <input type="text" id="model" value="DeepSeek-R1">
+                </div>
+                <div class="settings-row">
+                    <label for="apiKey">API Key:</label>
+                    <div class="password-input">
+                        <input type="password" id="apiKey" placeholder="Enter API Key">
+                        <button class="toggle-password" onclick="togglePasswordVisibility('apiKey')"><i
+                                class="fa-solid fa-eye"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h4>Generation Parameters</h4>
+                <div class="settings-row">
+                    <label for="maxTokens">Max Tokens:</label>
+                    <input type="number" id="maxTokens" value="4096">
+                </div>
+                <div class="settings-row">
+                    <label for="temperature">Temperature:</label>
+                    <div class="range-container">
+                        <input type="range" id="temperatureRange" min="0" max="1" value="0.8" step="0.1"
+                            oninput="updateNumberInput('temperature', this.value)">
+                        <input type="number" id="temperature" value="0.8" step="0.1"
+                            oninput="updateRangeInput('temperatureRange', this.value)">
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="topP">Top P:</label>
+                    <div class="range-container">
+                        <input type="range" id="topPRange" min="0" max="1" value="0.95" step="0.05"
+                            oninput="updateNumberInput('topP', this.value)">
+                        <input type="number" id="topP" value="0.95" step="0.05"
+                            oninput="updateRangeInput('topPRange', this.value)">
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h4>Advanced Settings</h4>
+                <div class="settings-row">
+                    <label for="n">N:</label>
+                    <input type="number" id="n" value="1">
+                </div>
+                <div class="settings-row checkbox">
+                    <label for="stream">Stream</label>
+                    <label class="switch">
+                        <input type="checkbox" id="stream" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="settings-row">
+                    <label for="logprobs">Logprobs:</label>
+                    <input type="text" id="logprobs" placeholder="None">
+                </div>
+                <div class="settings-row">
+                    <label for="stop">Stop:</label>
+                    <input type="text" id="stop" placeholder="None">
+                </div>
+                <div class="settings-row">
+                    <label for="frequency_penalty">Frequency Penalty:</label>
+                    <div class="range-container">
+                        <input type="range" id="frequency_penaltyRange" min="0" max="1" value="0" step="0.1"
+                            oninput="updateNumberInput('frequency_penalty', this.value)">
+                        <input type="number" id="frequency_penalty" value="0" step="0.1"
+                            oninput="updateRangeInput('frequency_penaltyRange', this.value)">
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="presence_penalty">Presence Penalty:</label>
+                    <div class="range-container">
+                        <input type="range" id="presence_penaltyRange" min="0" max="1" value="0" step="0.1"
+                            oninput="updateNumberInput('presence_penalty', this.value)">
+                        <input type="number" id="presence_penalty" value="0" step="0.1"
+                            oninput="updateRangeInput('presence_penaltyRange', this value)">
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="settings-row">
-            <label for="maxTokens">Max Tokens:</label>
-            <input type="number" id="maxTokens" value="4096">
-        </div>
-        <div class="settings-row">
-            <label for="temperature">Temperature:</label>
-            <input type="number" id="temperature" value="0.8" step="0.1">
-        </div>
-        <div class="settings-row">
-            <label for="topP">Top P:</label>
-            <input type="number" id="topP" value="0.95" step="0.05">
-        </div>
-        <div class="settings-row">
-            <label for="n">N:</label>
-            <input type="number" id="n" value="1">
-        </div>
-        <div class="settings-row">
-            <label for="stream">Stream:</label>
-            <input type="checkbox" id="stream" checked>
-        </div>
-        <div class="settings-row">
-            <label for="logprobs">Logprobs:</label>
-            <input type="text" id="logprobs" placeholder="None">
-        </div>
-        <div class="settings-row">
-            <label for="stop">Stop:</label>
-            <input type="text" id="stop" placeholder="None">
-        </div>
-        <div class="settings-row">
-            <label for="frequency_penalty">Frequency Penalty:</label>
-            <input type="number" id="frequency_penalty" value="0" step="0.1">
-        </div>
-        <div class="settings-row">
-            <label for="presence_penalty">Presence Penalty:</label>
-            <input type="number" id="presence_penalty" value="0" step="0.1">
-        </div>
-        <button onclick="dismissSettingsMenu()">OK</button>
     </div>
     <div id="overlay" onclick="dismissSettingsMenu()" style="display: none;"></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="scripts/conversation.js"></script>
+    <div class="toast-notification" id="notificationToast">
+        <span id="notificationMessage"></span>
+    </div>
+    
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github-dark.min.css"
+        id="hljs-dark-theme" disabled>
+    <!-- Load our script after external libraries -->
+    <script src="scripts/conversation.js" defer></script>
 </body>
 
 </html>
