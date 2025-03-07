@@ -26,8 +26,7 @@
   --shadow-color: rgba(0, 0, 0, 0.1);
   --transition-speed: 0.3s;
   
-  /* Viewport safety */
-  --viewport-height: 100vh;
+  /* Viewport safety - improved for mobile browsers */
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   
@@ -50,7 +49,14 @@ body.dark-mode {
   --message-ai-bg: var(--dark-message-ai);
 }
 
-/* Base styles - Mobile First */
+/* Base styles - Mobile First with fixes for Safari/Chrome */
+html {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: 'Book Antiqua', 'Segoe UI', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-color);
@@ -58,28 +64,31 @@ body {
   line-height: 1.5;
   margin: 0;
   padding: 0;
+  height: 100%;
+  width: 100%;
+  position: fixed; /* Prevents mobile browser address bar from affecting layout */
   overflow: hidden;
   transition: background-color var(--transition-speed), color var(--transition-speed);
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  -webkit-text-size-adjust: 100%; /* Prevent font scaling in landscape */
 }
 
 .chat-container {
-  min-height: calc(var(--viewport-height) - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
   width: 100%;
+  height: 100%;
   max-width: 100%;
   margin: 0;
   background-color: var(--bg-color);
-  overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
   transition: background-color var(--transition-speed);
-  flex: 1;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
-/* Header Styles */
+/* Header Styles - Fixed for Safari/Chrome */
 .chat-header {
   background-color: var(--primary-color);
   color: white;
@@ -87,6 +96,9 @@ body {
   z-index: 1030;
   padding-top: var(--safe-area-inset-top);
   transition: background-color var(--transition-speed);
+  width: 100%;
+  flex: 0 0 auto;
+  position: relative;
 }
 
 .chat-header h1 {
@@ -135,7 +147,9 @@ body {
   scrollbar-color: var(--primary-color) transparent;
   overscroll-behavior-y: contain;
   transition: background var(--transition-speed);
-  flex: 1;
+  flex: 1 1 auto;
+  position: relative;
+  width: 100%;
 }
 
 .chat-viewport::-webkit-scrollbar {
@@ -231,7 +245,7 @@ body.dark-mode .message .text code {
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* Footer - Input Area */
+/* Footer - Input Area with Safari/Chrome fixes */
 .chat-footer {
   background: var(--surface-color);
   border-top: 1px solid var(--border-color);
@@ -240,7 +254,8 @@ body.dark-mode .message .text code {
   position: relative;
   z-index: 1020;
   transition: background-color var(--transition-speed), border-color var(--transition-speed);
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  width: 100%;
 }
 
 .input-wrapper {
@@ -938,5 +953,34 @@ body.dark-mode .settings-header .close-btn:hover {
     margin: 10px 0;
     font-size: 0.85em;
     border-radius: 6px;
+  }
+}
+
+/* Mobile-specific fixes for Safari and Chrome */
+@supports (-webkit-touch-callout: none) {
+  /* iOS-specific fixes */
+  body, 
+  .chat-container {
+    /* Use a fixed height approach for iOS */
+    height: -webkit-fill-available;
+  }
+
+  .chat-header,
+  .chat-footer {
+    /* Ensure header and footer are properly fixed on iOS */
+    position: relative;
+    left: 0;
+    right: 0;
+  }
+}
+
+/* Chrome on Android specific fixes */
+@supports not (-webkit-touch-callout: none) and (-webkit-appearance: none) {
+  body {
+    min-height: 100vh;
+  }
+  
+  .chat-container {
+    height: 100vh;
   }
 }
