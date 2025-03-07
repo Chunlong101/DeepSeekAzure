@@ -46,7 +46,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (localStorage.getItem('darkMode') === 'true') {
         document.body.classList.add('dark-mode');
         document.getElementById('hljs-dark-theme').disabled = false; 
-        document.getElementById('darkModeToggle').innerHTML = '<i class="fa-solid fa-sun"></i> Theme'; // Fixed icon
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        if (darkModeToggle) {
+            darkModeToggle.innerHTML = '<i class="fa-solid fa-sun"></i> Theme'; // Added null check
+        }
     }
 
     // Set up event handlers for other buttons
