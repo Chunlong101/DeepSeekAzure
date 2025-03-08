@@ -18,7 +18,7 @@ namespace DeepSeekAzure.Controllers
         }
 
         /// <summary>
-        /// Call Azure AI Foundry API to get completions.
+        /// Call Azure AI Foundry API to get completions and then generate the completions to client.
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
