@@ -1,4 +1,5 @@
 # DeepSeekAzure
+Deploy your own deepseek-r1 on Azure and integrate with VsCode Cline and Open WebUI etc.
 
 ## Features
 This project serves as an adapter (relay/converter) for DeepSeek-R1. Currently, the full version of DeepSeek-R1 created in Azure AI Foundry does not natively support the OpenAI Compatible API. This adapter performs the necessary conversions to enable integration of the full DeepSeek-R1 with applications such as Cline or Open WebUI.
@@ -38,6 +39,9 @@ Or integrate with applications, extensions, and plugins like Cline:
 ---
 ---
 ---
+
+# DeepSeekAzure
+在Azure上部署你自己的满血版DeepSeek-R1，将其接入你自己的VsCode Cline或Open WebUI等。
 
 ## 功能特性
 这个项目是一个适配器（中转站/转接器）：目前在Azure AI Foundry里面创建的满血版DeepSeek-R1默认不支持OpenAI Campatible的Api，需要做一些适配工作，从而可以将满血DeepSeek-R1接入例如Cline或Open WebUI等应用。
