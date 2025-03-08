@@ -312,95 +312,32 @@ async function sendMessage() {
     conversationHistory.push({ role: 'user', content: message });
     appendMessage(message, 'user');
     userInput.value = '';
+    updateCharCounter();
 
     const isStream = document.getElementById('stream').checked;
     let aiMessageDiv;
-    let buffer = '';
-
+    let aiResponseContent = '';
+    
     try {
-        if (isStream) {
-            // Stream mode
-            aiMessageDiv = appendMessage('▌', 'ai');
-            const response = await fetch('/openai/deployments/deepseek-r1/Chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api-key': document.getElementById('apiKey').value
-                },
-                body: JSON.stringify({
-                    messages: conversationHistory,
-                    model: document.getElementById('model').value,
-                    max_tokens: parseInt(document.getElementById('maxTokens').value, 10),
-                    temperature: parseFloat(document.getElementById('temperature').value),
-                    top_p: parseFloat(document.getElementById('topP').value),
-                    n: parseInt(document.getElementById('n').value, 10),
-                    stream: true,
-                    logprobs: document.getElementById('logprobs').value || null,
-                    stop: document.getElementById('stop').value || null,
-                    frequency_penalty: parseFloat(document.getElementById('frequency_penalty').value),
-                    presence_penalty: parseFloat(document.getElementById('presence_penalty').value)
-                })
-            });
+        // Prepare request payload (common for both streaming and non-streaming)
+        const requestPayload = {
+            messages: conversationHistory,
+            model: document.getElementById('model').value,
+            max_tokens: parseInt(document.getElementById('maxTokens').value, 10),
+            temperature: parseFloat(document.getElementById('temperature').value),
+            top_p: parseFloat(document.getElementById('topP').value),
+            n: parseInt(document.getElementById('n').value, 10),
+            stream: isStream,
+            logprobs: document.getElementById('logprobs').value || null,
+            stop: document.getElementById('stop').value || null,
+            frequency_penalty: parseFloat(document.getElementById('frequency_penalty').value),
+            presence_penalty: parseFloat(document.getElementById('presence_penalty').value)
+        };
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) {
-                    conversationHistory.push({ role: 'assistant', content: buffer });
-                    const textElement = aiMessageDiv.querySelector('.text');
-                    textElement.innerHTML = marked.parse(buffer);
-                    
-                    // Add syntax highlighting to code blocks with error handling
-                    try {
-                        if (typeof hljs !== 'undefined') {
-                            const codeBlocks = textElement.querySelectorAll('pre code');
-                            codeBlocks.forEach((codeBlock) => {
-                                try {
-                                    hljs.highlightElement(codeBlock);
-                                } catch (e) {
-                                    console.warn('Code highlighting failed for block:', e);
-                                }
-                            });
-                        }
-                    } catch (e) {
-                        console.warn('Highlight.js is not available:', e);
-                    }
-                    
-                    // Ensure scroll to bottom happens after rendering
-                    scrollToBottom();
-                    
-                    // Add a second scroll attempt after a longer delay for mobile
-                    setTimeout(scrollToBottom, 500);
-                    break;
-                }
-                
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-                
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const jsonStr = line.replace('data: ', '');
-                        if (jsonStr === '[DONE]') {
-                            continue;
-                        }
-                        try {
-                            const data = JSON.parse(jsonStr);
-                            const content = data.choices?.[0]?.delta?.content || '';
-                            buffer += content;
-                            aiMessageDiv.querySelector('.text').textContent = buffer + '▌';
-                            
-                            // Scroll more frequently during streaming (not just on newlines)
-                            if (content.length > 0) {
-                                scrollToBottom();
-                            }
-                        } catch (e) {
-                            console.error('Stream parsing error:', e);
-                        }
-                    }
-                }
-            }
+        if (isStream) {
+            // Stream mode - create placeholder message div with cursor
+            aiMessageDiv = appendMessage('▌', 'ai');
+            await handleStreamingResponse(requestPayload, aiMessageDiv);
         } else {
             // Non-streaming mode
             const response = await fetch('/openai/deployments/deepseek-r1/Chat/completions', {
@@ -409,19 +346,7 @@ async function sendMessage() {
                     'Content-Type': 'application/json',
                     'api-key': document.getElementById('apiKey').value
                 },
-                body: JSON.stringify({
-                    messages: conversationHistory,
-                    model: document.getElementById('model').value,
-                    max_tokens: parseInt(document.getElementById('maxTokens').value, 10),
-                    temperature: parseFloat(document.getElementById('temperature').value),
-                    top_p: parseFloat(document.getElementById('topP').value),
-                    n: parseInt(document.getElementById('n').value, 10),
-                    stream: false,
-                    logprobs: document.getElementById('logprobs').value || null,
-                    stop: document.getElementById('stop').value || null,
-                    frequency_penalty: parseFloat(document.getElementById('frequency_penalty').value),
-                    presence_penalty: parseFloat(document.getElementById('presence_penalty').value)
-                })
+                body: JSON.stringify(requestPayload)
             });
 
             if (response.ok) {
@@ -429,27 +354,150 @@ async function sendMessage() {
                 const content = data.choices?.[0]?.message?.content || '';
                 conversationHistory.push({ role: 'assistant', content });
                 appendMessage(content, 'ai');
-                // Double scroll to bottom with different timeouts
-                scrollToBottom();
-                setTimeout(scrollToBottom, 300);
             } else {
-                const errorText = await response.text();
-                appendMessage('Error: ' + errorText, 'ai');
+                const errorData = await response.text();
+                console.error("API Error:", errorData);
+                appendMessage(`Error: ${response.status} - ${errorData}`, 'ai');
             }
         }
     } catch (error) {
-        appendMessage('Error: ' + (error.message || 'An unknown error occurred.'), 'ai');
+        console.error("Request failed:", error);
+        appendMessage(`Error: ${error.message || 'An unknown error occurred.'}`, 'ai');
     } finally {
         hideSpinner();
         userInput.disabled = false;
         userInput.focus();
         isProcessingRequest = false;
         
-        // Multiple scroll attempts with increasing delays
+        // Multiple scroll attempts with increasing delays for better mobile support
         scrollToBottom();
         setTimeout(scrollToBottom, 200);
         setTimeout(scrollToBottom, 500);
     }
+}
+
+async function handleStreamingResponse(requestPayload, aiMessageDiv) {
+    let buffer = '';
+    let firstChunkReceived = false;
+    let streamParser = new SSEParser();
+    
+    try {
+        const response = await fetch('/openai/deployments/deepseek-r1/Chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': document.getElementById('apiKey').value
+            },
+            body: JSON.stringify(requestPayload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error ${response.status}: ${errorText}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value, { stream: true });
+            const parsedChunks = streamParser.parse(chunk);
+            
+            for (const parsedData of parsedChunks) {
+                if (parsedData === '[DONE]') continue;
+                
+                try {
+                    const data = JSON.parse(parsedData);
+                    const content = data.choices?.[0]?.delta?.content || '';
+                    
+                    // Hide spinner when we receive first content
+                    if (!firstChunkReceived && content.length > 0) {
+                        hideSpinner();
+                        firstChunkReceived = true;
+                    }
+                    
+                    if (content) {
+                        buffer += content;
+                        updateStreamingMessage(aiMessageDiv, buffer);
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse SSE chunk:', e);
+                    // Continue processing other chunks
+                }
+            }
+        }
+        
+        // Final update without cursor
+        if (buffer.length > 0) {
+            updateFinalMessage(aiMessageDiv, buffer);
+            conversationHistory.push({ role: 'assistant', content: buffer });
+        }
+    } catch (error) {
+        console.error("Streaming error:", error);
+        updateFinalMessage(aiMessageDiv, `Error: ${error.message}`);
+        throw error; // Re-throw to be caught by the main error handler
+    }
+}
+
+// SSE Parser to handle chunked responses properly
+class SSEParser {
+    constructor() {
+        this.buffer = '';
+    }
+    
+    parse(chunk) {
+        this.buffer += chunk;
+        const lines = this.buffer.split('\n');
+        const parsedChunks = [];
+        
+        // Keep the last line which might be incomplete
+        const lastLine = lines.pop();
+        this.buffer = lastLine || '';
+        
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('data: ')) {
+                const data = trimmedLine.substring(6);
+                if (data) {
+                    parsedChunks.push(data);
+                }
+            }
+        }
+        
+        return parsedChunks;
+    }
+}
+
+function updateStreamingMessage(messageDiv, content) {
+    const textElement = messageDiv.querySelector('.text');
+    textElement.textContent = content + '▌'; // Add cursor
+    scrollToBottom();
+}
+
+function updateFinalMessage(messageDiv, content) {
+    const textElement = messageDiv.querySelector('.text');
+    textElement.innerHTML = marked.parse(content);
+    
+    // Apply syntax highlighting to code blocks
+    try {
+        if (typeof hljs !== 'undefined') {
+            const codeBlocks = textElement.querySelectorAll('pre code');
+            codeBlocks.forEach((codeBlock) => {
+                try {
+                    hljs.highlightElement(codeBlock);
+                } catch (e) {
+                    console.warn('Code highlighting failed for block:', e);
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('Highlight.js is not available:', e);
+    }
+    
+    scrollToBottom();
 }
 
 // Toggle secondary menu function

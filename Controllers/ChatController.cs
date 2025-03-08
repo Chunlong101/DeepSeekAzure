@@ -78,18 +78,71 @@ namespace DeepSeekAzure.Controllers
             var jsonPayload = JsonSerializer.Serialize(payload);
             var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
 
-            var apiResponse = await httpClient.PostAsync(_endpoint, content);
-
             if (request.Stream)
             {
-                Response.Headers.Append("Content-Type", "text/event-stream");
-                
-                using var responseStream = await apiResponse.Content.ReadAsStreamAsync();
-                await responseStream.CopyToAsync(Response.Body);
-                return new EmptyResult();
+                // Proper streaming setup
+                var requestMessage = new HttpRequestMessage(HttpMethod.Post, _endpoint)
+                {
+                    Content = content
+                };
+                requestMessage.Headers.Add("api-key", _apiKey);
+
+                // Add cancellation token from the client request
+                var clientCancellationToken = HttpContext.RequestAborted;
+
+                try
+                {
+                    // Use SendAsync with ResponseHeadersRead to start processing as soon as headers arrive
+                    var responseFromAAF = await httpClient.SendAsync(
+                        requestMessage,
+                        HttpCompletionOption.ResponseHeadersRead,
+                        clientCancellationToken);
+
+                    if (!responseFromAAF.IsSuccessStatusCode)
+                    {
+                        return StatusCode((int)responseFromAAF.StatusCode, new { error = "API request failed." });
+                    }
+
+                    // Set response headers for streaming
+                    Response.Headers.Append("Content-Type", "text/event-stream");
+                    Response.Headers.Append("Cache-Control", "no-cache");
+                    Response.Headers.Append("Connection", "keep-alive");
+                    
+                    using var responseStream = await responseFromAAF.Content.ReadAsStreamAsync(clientCancellationToken);
+                    
+                    // Stream the response in small chunks for real-time delivery
+                    byte[] buffer = new byte[1024]; // 1KB chunks for responsive streaming
+                    int bytesRead;
+                    
+                    while ((bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, clientCancellationToken)) > 0)
+                    {
+                        await Response.Body.WriteAsync(buffer, 0, bytesRead, clientCancellationToken);
+                        await Response.Body.FlushAsync(clientCancellationToken); // Important: flush after each chunk
+                    }
+                    
+                    return new EmptyResult();
+                }
+                catch (OperationCanceledException)
+                {
+                    // Client disconnected, handle gracefully
+                    return new EmptyResult();
+                }
+                catch (Exception ex)
+                {
+                    // Only log the error if headers haven't been sent yet
+                    if (!Response.HasStarted)
+                    {
+                        return StatusCode(500, new { error = $"Streaming error: {ex.Message}" });
+                    }
+                    
+                    // If headers are already sent, we can't change the response status code
+                    return new EmptyResult();
+                }
             }
             else
             {
+                // Non-streaming request
+                var apiResponse = await httpClient.PostAsync(_endpoint, content);
                 var apiResponseContent = await apiResponse.Content.ReadAsStringAsync();
 
                 if (!apiResponse.IsSuccessStatusCode)
